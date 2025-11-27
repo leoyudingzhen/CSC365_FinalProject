@@ -1,4 +1,4 @@
-
+import { useState, useEffect } from "react";
 
 
 
@@ -6,6 +6,26 @@
 let imageUrl = "";
 
 const SHeader = () => {
+
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+  return localStorage.getItem("loggedIn") === "true";
+});
+
+  
+  useEffect(() => {
+    localStorage.setItem("loggedIn", isLoggedIn ? "true" : "false");
+  }, [isLoggedIn]);
+
+  const handleLogin = (username: string, password: string) => {
+    
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+  };
+
+
     return (
     <header
       style={{
@@ -43,50 +63,39 @@ const SHeader = () => {
           marginLeft: "1.5rem",
         }}
       >
-        {/* Avatar */}
-        <div
-          style={{
-            width: "55px",
-            height: "55px",
-            borderRadius: "999px",
-            overflow: "hidden",
-            backgroundColor: "#111827",
-          }}
-        >
+          {isLoggedIn ? (
+          <>
             <button
-            style={{
-              padding: "0.15rem 0.6rem",
-              cursor: "pointer",
-            }}
+              style={{
+                width: "55px",
+                height: "55px",
+                borderRadius: "999px",
+                overflow: "hidden",
+                backgroundColor: "#111827",
+              }}
             >
-                <img
-                    src="https://via.placeholder.com/40"
-                    alt="User avatar"
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
+              <img
+                src="https://via.placeholder.com/40"
+                alt="User avatar"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
             </button>
-        </div>
-
-        {/* User info */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={{ fontSize: "0.9rem", fontWeight: 600 }}>Username</span>
-          <button
-            type="button"
-            style={{
-              marginTop: "2px",
-              fontSize: "0.75rem",
-              padding: "0.15rem 0.6rem",
-              borderRadius: "999px",
-              border: "none",
-              cursor: "pointer",
-              backgroundColor: "#21c872",
-              color: "#0f172a",
-              fontWeight: 600,
-            }}
-          >
-            Profile
-          </button>
-        </div>
+          </>
+          ) : (
+            <button
+              style={{
+                padding: "0.6rem 1.4rem",
+                borderRadius: "0.5rem",        // rectangle with rounded corners
+                border: "none",
+                backgroundColor: "#22c55e", // red/green
+                color: "white",
+                fontWeight: "bold",
+                cursor: "pointer",
+              }}
+            >
+              {"Sign In"}
+            </button>
+          )}
       </div>
     </header>
     )
