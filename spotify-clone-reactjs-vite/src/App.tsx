@@ -6,10 +6,14 @@ import { Routes, Route } from "react-router-dom";
 import Player from "./components/Sections/Player";
 import Search from "./pages/Search";
 import Softspot from "./components/soft-spot/Softspot";
+import SHeader from "./components/Sections/Header";
 function App() {
 
   return (
     <>
+        <header className="[grid-area:header] mb-2">
+          <SHeader />
+        </header>
       <div id="app" className="relative h-screen p-2 gap-2">
         <aside className="[grid-area:aside] flex-col flex overflow-y-auto">
           <AsideMenu />
