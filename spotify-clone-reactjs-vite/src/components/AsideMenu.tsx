@@ -9,7 +9,6 @@ const AsideMenu = () => {
         <div className="bg-zinc-900 rounded-lg p-2">
           <ul>
             <SideMenuItem href="/" text="Home" />
-            <SideMenuItem href="/search" text="Search" />
           </ul>
         </div>
 

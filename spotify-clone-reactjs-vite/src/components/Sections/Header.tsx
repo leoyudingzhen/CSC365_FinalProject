@@ -1,32 +1,26 @@
-import { useState, useEffect } from "react";
-
-
-
-
-let imageUrl = "";
+import { useState, useContext } from "react";
+import { spotifySearch } from "../Search/SpotifySearch";
+import SpotifySearchContext from "../../context/SpotifySearchContext";
+import { useNavigate } from "react-router-dom";
 
 const SHeader = () => {
+  const [query, setQuery] = useState("");
+  const { setResult } = useContext(SpotifySearchContext);
+  const navigate = useNavigate();
 
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-  return localStorage.getItem("loggedIn") === "true";
-});
-
-  
-  useEffect(() => {
-    localStorage.setItem("loggedIn", isLoggedIn ? "true" : "false");
-  }, [isLoggedIn]);
-
-  const handleLogin = (username: string, password: string) => {
-    
-    setIsLoggedIn(true);
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+    try {
+      const result = await spotifySearch(query);
+      setResult(result);
+      navigate("/"); // Always show PlaylistItem after search
+    } catch (err) {
+      console.error("Spotify search failed:", err);
+    }
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-  };
-
-
-    return (
+  return (
     <header
       style={{
         display: "flex",
@@ -39,21 +33,24 @@ const SHeader = () => {
     >
       {/* Left: Text box */}
       <div style={{ flex: 1, maxWidth: "400px" }}>
-        <input
-          type="text"
-          placeholder="Search..."
-          style={{
-            width: "100%",
-            padding: "0.85rem 1.35rem",
-            borderRadius: "999px",
-            border: "1px solid #4b5563",
-            backgroundColor: "#18181b",
-            color: "#e5e7eb",
-            outline: "none",
-          }}
-        />
+        <form onSubmit={handleSubmit}>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            type="text"
+            placeholder="Search..."
+            style={{
+              width: "100%",
+              padding: "0.85rem 1.35rem",
+              borderRadius: "999px",
+              border: "1px solid #4b5563",
+              backgroundColor: "#18181b",
+              color: "#e5e7eb",
+              outline: "none",
+            }}
+          />
+        </form>
       </div>
-
       {/* Right: User profile */}
       <div
         style={{
@@ -63,42 +60,24 @@ const SHeader = () => {
           marginLeft: "1.5rem",
         }}
       >
-          {isLoggedIn ? (
-          <>
-            <button
-              style={{
-                width: "55px",
-                height: "55px",
-                borderRadius: "999px",
-                overflow: "hidden",
-                backgroundColor: "#111827",
-              }}
-            >
-              <img
-                src="https://via.placeholder.com/40"
-                alt="User avatar"
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-            </button>
-          </>
-          ) : (
-            <button
-              style={{
-                padding: "0.6rem 1.4rem",
-                borderRadius: "0.5rem",        // rectangle with rounded corners
-                border: "none",
-                backgroundColor: "#22c55e", // red/green
-                color: "white",
-                fontWeight: "bold",
-                cursor: "pointer",
-              }}
-            >
-              {"Sign In"}
-            </button>
-          )}
+        <button
+          style={{
+            width: "55px",
+            height: "55px",
+            borderRadius: "999px",
+            overflow: "hidden",
+            backgroundColor: "#111827",
+          }}
+        >
+          <img
+            src="https://via.placeholder.com/40"
+            alt="User avatar"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        </button>
       </div>
     </header>
-    )
-}
+  );
+};
 
 export default SHeader;
