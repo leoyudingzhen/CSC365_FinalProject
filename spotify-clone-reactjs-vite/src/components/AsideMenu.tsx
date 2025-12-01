@@ -121,7 +121,7 @@ const AsideMenu = () => {
                       } catch {}
                     }
                   }}
-                  className="playlist-item flex relative p-2 overflow-hidden items-center gap-5 rounded-md hover:bg-zinc-800 cursor-pointer"
+                  className="playlist-item flex relative p-2 overflow-hidden items-center gap-5 rounded-md hover:bg-gradient-to-r hover:from-zinc-800 hover:to-emerald-900/20 hover:border-emerald-500/30 border border-transparent transition-all duration-300 cursor-pointer transform hover:scale-105"
                 >
                   <picture className="h-12 w-12 flex-none">
                     <img src={playlist?.cover} alt={playlist?.title} className="object-cover w-full h-full rounded-md" />

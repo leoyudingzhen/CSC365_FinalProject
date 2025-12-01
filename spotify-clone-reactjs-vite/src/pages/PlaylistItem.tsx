@@ -1,8 +1,8 @@
-import CardPlayButton from "../components/CardPlayButton";
 import MusicsTable from "../components/MusicsTable";
 import { useContext, useEffect, useState } from "react";
 import SpotifySearchContext from "../context/SpotifySearchContext";
 import { IoPlaySkipForward, IoPlaySkipBack, IoClose, IoHeart, IoHeartOutline } from "react-icons/io5";
+import { Play } from "../components/Player/Play";
 
 const PlaylistItem = () => {
   const { result } = useContext(SpotifySearchContext) as any;
@@ -69,6 +69,7 @@ const PlaylistItem = () => {
   console.log("Display Songs:", displaySongs);
   const [selectedSpotifyTrackId, setSelectedSpotifyTrackId] =
     useState<string | null>(null);
+  const [currentSongIndex, setCurrentSongIndex] = useState<number>(-1);
   // for a smoother entrance animation we toggle mounted after selection
   const [mounted, setMounted] = useState(false);
   const [liked, setLiked] = useState<boolean>(false);
@@ -120,32 +121,70 @@ const PlaylistItem = () => {
       // no user, skip
     }
   }, [selectedSpotifyTrackId]);
-  const nextTrack = () => {
+  const nextTrack = async () => {
     if (!displaySongs || displaySongs.length === 0) return;
-    const idx = displaySongs.findIndex(
-      (s) => String(s.id) === String(selectedSpotifyTrackId)
-    );
-    const nextIdx = idx === -1 ? 0 : (idx + 1) % displaySongs.length;
+    const nextIdx = currentSongIndex === -1 ? 0 : (currentSongIndex + 1) % displaySongs.length;
     const next = displaySongs[nextIdx];
-    if (isSpotifySearch && next?.id) setSelectedSpotifyTrackId(String(next.id));
+    setCurrentSongIndex(nextIdx);
+    
+    if (isSpotifySearch && next?.id) {
+      setSelectedSpotifyTrackId(String(next.id));
+    } else if (!isSpotifySearch && next) {
+      // Resolve Quickchat track via Spotify Search
+      try {
+        const tokenResp = await fetch("http://localhost:3001/spotify-token");
+        const tokenData = tokenResp.ok ? await tokenResp.json() : null;
+        const accessToken = tokenData?.access_token;
+        if (!accessToken) return;
+        const qTitle = next?.title ? `track:${next.title}` : "";
+        const qArtist = next?.artists?.[0] ? ` artist:${next.artists[0]}` : "";
+        const q = encodeURIComponent(`${qTitle}${qArtist}`.trim() || next?.title || "");
+        const url = `https://api.spotify.com/v1/search?q=${q}&type=track&limit=1`;
+        const r = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+        if (r.ok) {
+          const data = await r.json();
+          const track = data?.tracks?.items?.[0];
+          if (track?.id) setSelectedSpotifyTrackId(String(track.id));
+        }
+      } catch {}
+    }
   };
 
-  const prevTrack = () => {
+  const prevTrack = async () => {
     if (!displaySongs || displaySongs.length === 0) return;
-    const idx = displaySongs.findIndex(
-      (s) => String(s.id) === String(selectedSpotifyTrackId)
-    );
-    const prevIdx = idx === -1 ? 0 : (idx - 1 + displaySongs.length) % displaySongs.length;
+    const prevIdx = currentSongIndex === -1 ? 0 : (currentSongIndex - 1 + displaySongs.length) % displaySongs.length;
     const prev = displaySongs[prevIdx];
-    if (isSpotifySearch && prev?.id) setSelectedSpotifyTrackId(String(prev.id));
+    setCurrentSongIndex(prevIdx);
+    
+    if (isSpotifySearch && prev?.id) {
+      setSelectedSpotifyTrackId(String(prev.id));
+    } else if (!isSpotifySearch && prev) {
+      // Resolve Quickchat track via Spotify Search
+      try {
+        const tokenResp = await fetch("http://localhost:3001/spotify-token");
+        const tokenData = tokenResp.ok ? await tokenResp.json() : null;
+        const accessToken = tokenData?.access_token;
+        if (!accessToken) return;
+        const qTitle = prev?.title ? `track:${prev.title}` : "";
+        const qArtist = prev?.artists?.[0] ? ` artist:${prev.artists[0]}` : "";
+        const q = encodeURIComponent(`${qTitle}${qArtist}`.trim() || prev?.title || "");
+        const url = `https://api.spotify.com/v1/search?q=${q}&type=track&limit=1`;
+        const r = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+        if (r.ok) {
+          const data = await r.json();
+          const track = data?.tracks?.items?.[0];
+          if (track?.id) setSelectedSpotifyTrackId(String(track.id));
+        }
+      } catch {}
+    }
   };
 
-  const closeEmbed = () => setSelectedSpotifyTrackId(null);
+  const closeEmbed = () => {
+    setSelectedSpotifyTrackId(null);
+    setCurrentSongIndex(-1);
+  };
 
-  const selectedIndex = selectedSpotifyTrackId
-    ? displaySongs.findIndex((s) => String(s.id) === String(selectedSpotifyTrackId))
-    : -1;
-  const selectedTrack = selectedIndex >= 0 ? displaySongs[selectedIndex] : null;
+  const selectedTrack = currentSongIndex >= 0 ? displaySongs[currentSongIndex] : null;
   return (
     <>
       <div
@@ -158,13 +197,13 @@ const PlaylistItem = () => {
             <img
               src={coverImage}
               alt="Cover"
-              className="object-cover w-full h-full shadow-lg"
+              className="object-cover w-full h-full shadow-lg rounded-md border-2 border-emerald-500/30"
             />
           </picture>
           <div className="flex flex-col justify-between py-2">
             <h2 className="flex flex-1 items-end"></h2>
             <div>
-              <h1 className="text-6xl font-extrabold block text-white">
+              <h1 className="text-6xl font-extrabold block text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-50 to-emerald-300">
                 {displaySongs.length > 0
                   ? isChatRecs
                     ? "Quickchat Recommendations"
@@ -188,12 +227,49 @@ const PlaylistItem = () => {
           </div>
         </header>
         <div className="pl-6 pt-6">
-          <CardPlayButton id={`spotify-search`} size="large" />
+          <button
+            onClick={() => {
+              if (displaySongs.length > 0) {
+                const firstSong = displaySongs[0];
+                setCurrentSongIndex(0);
+                if (isSpotifySearch && firstSong?.id) {
+                  setSelectedSpotifyTrackId(String(firstSong.id));
+                } else {
+                  // For Quickchat, resolve via Spotify Search
+                  (async () => {
+                    try {
+                      const tokenResp = await fetch("http://localhost:3001/spotify-token");
+                      const tokenData = tokenResp.ok ? await tokenResp.json() : null;
+                      const accessToken = tokenData?.access_token;
+                      if (!accessToken) return;
+                      const qTitle = firstSong?.title ? `track:${firstSong.title}` : "";
+                      const qArtist = firstSong?.artists?.[0] ? ` artist:${firstSong.artists[0]}` : "";
+                      const q = encodeURIComponent(`${qTitle}${qArtist}`.trim() || firstSong?.title || "");
+                      const url = `https://api.spotify.com/v1/search?q=${q}&type=track&limit=1`;
+                      const r = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+                      if (r.ok) {
+                        const data = await r.json();
+                        const track = data?.tracks?.items?.[0];
+                        if (track?.id) setSelectedSpotifyTrackId(track.id);
+                      }
+                    } catch {}
+                  })();
+                }
+              }
+            }}
+            className="rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 p-4 mb-10 hover:scale-105 transition shadow-lg shadow-emerald-500/40 hover:shadow-emerald-400/50"
+          >
+            <Play className="w-5 h-5 text-white" />
+          </button>
         </div>
         <div className="relative z-10 px-6 pt-10 pb-28">
           <MusicsTable
             songs={displaySongs}
             onSelect={async (s: any) => {
+              // Find index of selected song
+              const idx = displaySongs.findIndex((song) => song.id === s.id);
+              setCurrentSongIndex(idx >= 0 ? idx : 0);
+              
               // If this is a Spotify search result, the song id should be the Spotify track id
               if (isSpotifySearch && s?.id) {
                 setSelectedSpotifyTrackId(String(s.id));

@@ -50,7 +50,7 @@ function App() {
         <aside className="[grid-area:aside] flex-col flex overflow-y-auto">
           <AsideMenu />
         </aside>
-        <Softspot theme="emerald" />
+        <Softspot theme="zinc" />
         <main className="[grid-area:main] rounded-lg bg-zinc-900 overflow-y-auto">
           <Routes>
             <Route path="/" element={<MainSection user={user} />} />

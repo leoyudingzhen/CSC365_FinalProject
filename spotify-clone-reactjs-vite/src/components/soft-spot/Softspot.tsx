@@ -58,6 +58,7 @@ export default function FloatingChat({
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<GeminiSong[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "intro",
@@ -183,6 +184,8 @@ export default function FloatingChat({
         } catch {
           // ignore enrichment errors
         }
+        // Show inline suggestions grid
+        setSuggestions(songsWithImages);
         setResult?.({
           source: "chat",
           songs: songsWithImages,
@@ -222,13 +225,14 @@ export default function FloatingChat({
         <button
           aria-label="Open chat"
           onClick={() => setOpen(true)}
-          className="fixed grid place-items-center rounded-full shadow-xl text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none"
+          className="fixed grid place-items-center rounded-full shadow-xl text-white transition-all duration-300 hover:-translate-y-1 hover:scale-110 active:translate-y-0 focus:outline-none backdrop-blur"
           style={{
             right,
             bottom,
             width: 56,
             height: 56,
-            backgroundColor: accent,
+            background: theme === 'zinc' ? 'linear-gradient(135deg, #555555 0%, #3f3f46 100%)' : `linear-gradient(135deg, ${accent} 0%, ${dark} 100%)`,
+            boxShadow: `0 4px 20px ${accent}40`,
             zIndex: 1000,
           }}
         >
@@ -251,18 +255,21 @@ export default function FloatingChat({
               role="dialog"
               aria-modal="true"
               onClick={(e) => e.stopPropagation()}
-              className="w-[360px] max-w-[calc(100vw-32px)] rounded-xl shadow-2xl overflow-hidden animate-[fc-pop_.12s_ease-out_both] bg-white text-zinc-900"
+              className="w-[420px] max-w-[calc(100vw-32px)] rounded-2xl shadow-2xl overflow-hidden animate-[fc-pop_.16s_ease-out_both] bg-zinc-900 text-white"
             >
               {/* HEADER */}
               <div
                 className="px-4 py-3 flex items-center justify-between text-white"
-                style={{ backgroundColor: dark }}
+                style={{
+                  background:
+                    `linear-gradient(135deg, ${dark} 0%, ${accent} 90%)`,
+                }}
               >
                 <span className="font-semibold text-sm tracking-wide">{title}</span>
                 <button
                   aria-label="Close"
                   onClick={() => setOpen(false)}
-                  className="text-xl leading-none"
+                  className="text-xl leading-none hover:opacity-80"
                 >
                   ×
                 </button>
@@ -279,15 +286,13 @@ export default function FloatingChat({
                       key={msg.id}
                       className={`rounded-lg px-3 py-2 text-sm whitespace-pre-line ${
                         msg.role === "user"
-                          ? "border"
-                          : "bg-zinc-100 text-zinc-900"
+                          ? "border bg-zinc-800 text-white"
+                          : "bg-zinc-800 text-zinc-100"
                       }`}
                       style={
                         msg.role === "user"
                           ? {
                               borderColor: accent,
-                              backgroundColor: `${accent}1a`,
-                              color: dark,
                             }
                           : undefined
                       }
@@ -296,6 +301,43 @@ export default function FloatingChat({
                     </div>
                   ))}
                 </div>
+
+                {/* Inline suggestions grid */}
+                {suggestions.length > 0 && (
+                  <div className="mt-1">
+                    <div className="text-xs text-zinc-400 mb-2">Top picks · Click to play</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {suggestions.map((s) => (
+                        <button
+                          key={`${s.title}-${s.artist}`}
+                          className="flex items-center gap-3 rounded-lg border border-zinc-700 bg-zinc-800 p-2 hover:bg-gradient-to-r hover:from-zinc-700 hover:to-emerald-900/30 hover:border-emerald-500/50 text-left text-white transition-all duration-300 transform hover:scale-105"
+                          onClick={async () => {
+                            try {
+                              const res: any = await spotifySearch(`${s.title} ${s.artist}`);
+                              const track = res?.tracks?.items?.[0];
+                              const id = track?.id;
+                              if (id) {
+                                window.dispatchEvent(
+                                  new CustomEvent("app_play_spotify", { detail: { id } })
+                                );
+                              }
+                            } catch {}
+                          }}
+                        >
+                          <img
+                            src={s.image || ""}
+                            alt=""
+                            className="w-12 h-12 rounded object-cover bg-zinc-700"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">{s.title}</div>
+                            <div className="text-xs text-zinc-400 truncate">{s.artist}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {error && (
                   <div className="text-red-600 text-xs">
@@ -313,26 +355,25 @@ export default function FloatingChat({
                     placeholder ||
                     "E.g. upbeat indie for a workout, songs like Ariana Grande..."
                   }
-                  className="w-full resize-y rounded-lg border border-zinc-200 px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-300"
+                  className="w-full resize-y rounded-lg border border-zinc-700 bg-zinc-800 text-white px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600 placeholder:text-zinc-500"
                 />
               </div>
 
               {/* FOOTER */}
               <div className="px-4 py-3 flex gap-2 justify-end">
-                <div className="flex-1 text-left text-[11px] text-zinc-500">
+                <div className="flex-1 text-left text-[11px] text-zinc-400">
                   Powered by Gemini · keep requests under 200 characters.
                 </div>
                 <button
                   onClick={() => setOpen(false)}
-                  className="rounded-lg px-3 py-2 bg-zinc-100 text-zinc-900"
+                  className="rounded-lg px-3 py-2 bg-zinc-800 text-zinc-100 hover:bg-zinc-700"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={submit}
                   disabled={sending || !text.trim()}
-                  className="rounded-lg px-3 py-2 text-white disabled:opacity-60"
-                  style={{ backgroundColor: accent }}
+                  className="rounded-lg px-3 py-2 text-white disabled:opacity-60 bg-gradient-to-r from-zinc-700 to-zinc-600 hover:from-emerald-600 hover:to-emerald-500 transition-all duration-300 shadow-md hover:shadow-lg"
                 >
                   {sending ? "Sending…" : "Send"}
                 </button>
@@ -341,7 +382,7 @@ export default function FloatingChat({
 
             {/* tiny keyframes for pop */}
             <style>
-              {`@keyframes fc-pop{from{transform:translateY(6px) scale(.98);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}`}
+              {`@keyframes fc-pop{from{transform:translateY(8px) scale(.98);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}`}
             </style>
           </div>,
           portalEl

@@ -236,10 +236,11 @@ const MainSection = ({ user }: { user?: User }) => {
             <div
               key={i}
               onClick={() => playTrack(s)}
-              className="flex items-end p-4 rounded-lg bg-zinc-800 shadow-lg transform transition-transform hover:-translate-y-1 cursor-pointer"
+              className="relative flex items-end p-4 rounded-lg bg-gradient-to-br from-zinc-800 via-zinc-800 to-emerald-900/20 shadow-lg transform transition-all duration-300 hover:-translate-y-1 hover:shadow-emerald-500/20 hover:shadow-2xl cursor-pointer border border-zinc-700 hover:border-emerald-500/50 overflow-hidden group"
             >
-              <img src={s.image} alt={s.title} className="w-20 h-20 rounded-md mr-4 object-cover" />
-              <div>
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <img src={s.image} alt={s.title} className="w-20 h-20 rounded-md mr-4 object-cover shadow-lg z-10" />
+              <div className="z-10">
                 <div className="text-white font-semibold text-lg">{s.title}</div>
                 <div className="text-sm text-zinc-400">{s.artists.join(", ")}</div>
               </div>
@@ -254,7 +255,7 @@ const MainSection = ({ user }: { user?: User }) => {
               <div
                 key={i}
                 onClick={() => playTrack(s)}
-                className="flex items-center gap-2 bg-zinc-800 px-3 py-2 rounded-md cursor-pointer hover:bg-zinc-700 transition-colors"
+                className="flex items-center gap-2 bg-zinc-800 px-3 py-2 rounded-md cursor-pointer hover:bg-gradient-to-r hover:from-zinc-700 hover:to-emerald-900/30 transition-all duration-300 border border-transparent hover:border-emerald-500/30"
               >
                 <img src={s.image} alt={s.title} className="w-10 h-10 rounded-sm object-cover" />
                 <div className="text-sm text-white">{s.title}</div>
@@ -272,7 +273,7 @@ const MainSection = ({ user }: { user?: User }) => {
                 <button onClick={prevTrack} className="flex items-center justify-center w-10 h-10 bg-zinc-800 hover:bg-zinc-700 text-white rounded-full shadow-md transition-transform transform hover:-translate-y-0.5" aria-label="Previous">
                   <IoPlaySkipBack size={18} />
                 </button>
-                <button onClick={nextTrack} className="flex items-center justify-center w-10 h-10 bg-emerald-500 hover:bg-emerald-400 text-white rounded-full shadow-md transition-transform transform hover:-translate-y-0.5" aria-label="Next">
+                <button onClick={nextTrack} className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white rounded-full shadow-md shadow-emerald-500/30 transition-all transform hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-400/40" aria-label="Next">
                   <IoPlaySkipForward size={18} />
                 </button>
               </div>

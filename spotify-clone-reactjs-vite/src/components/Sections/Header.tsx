@@ -157,7 +157,7 @@ const SHeader = () => {
         alignItems: "center",
         justifyContent: "space-between",
         padding: "1rem 1.75rem",
-        backgroundColor: "#27272a",
+        background: "linear-gradient(135deg, #18181b 0%, #27272a 50%, #1e3a2f 100%)",
         color: "#f9fafb",
       }}
     >
@@ -169,6 +169,7 @@ const SHeader = () => {
             onChange={(e) => setQuery(e.target.value)}
             type="text"
             placeholder="Search..."
+            className="focus:ring-2 focus:ring-emerald-500/50 transition-shadow duration-200"
             style={{
               width: "100%",
               padding: "0.85rem 1.35rem",
@@ -214,10 +215,10 @@ const SHeader = () => {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button
               onClick={openSignIn}
+              className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 shadow-md shadow-emerald-500/30 hover:shadow-lg hover:shadow-emerald-400/40 transition-all duration-200"
               style={{
                 padding: "0.55rem 0.95rem",
                 borderRadius: 999,
-                backgroundColor: "#059669",
                 color: "white",
                 border: "none",
                 fontWeight: 600,
@@ -267,7 +268,7 @@ const SHeader = () => {
 
               <div className="flex items-center justify-between mt-2">
                 <button
-                  className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded font-semibold"
+                  className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-4 py-2 rounded font-semibold shadow-md shadow-emerald-500/30 hover:shadow-lg hover:shadow-emerald-400/40 transition-all duration-200"
                   type="submit"
                   disabled={loading}
                 >

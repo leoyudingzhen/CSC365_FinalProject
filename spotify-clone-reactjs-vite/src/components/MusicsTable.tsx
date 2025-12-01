@@ -27,7 +27,7 @@ const MusicsTable = ({ songs, onSelect }: MusicsTableProps) => {
             <tr
               key={song?.id}
               onClick={() => onSelect?.(song)}
-              className="text-gray-300 text-sm font-light hover:bg-white/10 overflow-hidden trasition duration-300 cursor-pointer"
+              className="text-gray-300 text-sm font-light hover:bg-gradient-to-r hover:from-white/10 hover:to-emerald-500/10 overflow-hidden transition-all duration-300 cursor-pointer group"
               role="button"
               tabIndex={0}
             >
@@ -42,7 +42,7 @@ const MusicsTable = ({ songs, onSelect }: MusicsTableProps) => {
                       "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&auto=format&fit=crop"
                     }
                     alt={song?.title}
-                    className="w-11 h-11"
+                    className="w-11 h-11 rounded shadow-sm group-hover:shadow-md group-hover:shadow-emerald-500/20 transition-shadow duration-300"
                   />
                 </picture>
                 <div className="flex flex-col">
