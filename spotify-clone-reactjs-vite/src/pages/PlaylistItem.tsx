@@ -9,6 +9,9 @@ const PlaylistItem = () => {
   // If there is a Spotify search result, map it to Song[] for MusicsTable
   let displaySongs: any[] = [];
   let isSpotifySearch = false;
+  let isChatRecs = false;
+
+  // From header Spotify search
   if (
     result &&
     typeof result === "object" &&
@@ -33,6 +36,35 @@ const PlaylistItem = () => {
     );
     isSpotifySearch = true;
   }
+
+  // From quick chat (Gemini/fallback)
+  if (
+    !displaySongs.length &&
+    result &&
+    typeof result === "object" &&
+    Array.isArray(result.songs)
+  ) {
+    displaySongs = result.songs.map((song: any, idx: number) => ({
+      id: song.id || String(idx),
+      title: song.title,
+      artists: [song.artist || "Unknown"],
+      album: song.album || song.genre || "Recommended",
+      image:
+        song.image ||
+        "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=200&auto=format&fit=crop",
+      duration: "-",
+      albumId: -1,
+    }));
+    isChatRecs = displaySongs.length > 0;
+  }
+
+  let coverImage = "https://via.placeholder.com/200";
+  if (isSpotifySearch && displaySongs.length > 0) {
+    coverImage = displaySongs[0].image;
+  } else if (isChatRecs && displaySongs.length > 0) {
+    coverImage = displaySongs[0].image;
+  }
+
   console.log("Display Songs:", displaySongs);
   return (
     <>
@@ -41,25 +73,30 @@ const PlaylistItem = () => {
         className="relative flex flex-col h-full bg-zinc-900 overflow-x-hidden"
       >
         {/* Page Header */}
-        <header className="flex flex-row gap-8 px-6 mt-12">
-          <picture className="aspect-square w-52 h-52 flex-none">
+        <header className="flex flex-row gap-8 px-6 mt-6 h-40">
+          <picture className="aspect-square w-40 h-40 flex-none">
             <img
-              src={"https://via.placeholder.com/200"}
+              src={coverImage}
               alt="Cover"
               className="object-cover w-full h-full shadow-lg"
             />
           </picture>
-          <div className="flex flex-col justify-between">
-            <h2 className="flex flex-1 items-end">Playlist</h2>
+          <div className="flex flex-col justify-between py-2">
+            <h2 className="flex flex-1 items-end"></h2>
             <div>
-              <h1 className="text-5xl font-bold block text-white">
-                Spotify Search Results<span></span>
+              <h1 className="text-6xl font-extrabold block text-white">
+                {displaySongs.length > 0
+                  ? isChatRecs
+                    ? "Quickchat Recommendations"
+                    : displaySongs[0].title
+                  : "Spotify Search Results"}
+                <span></span>
               </h1>
             </div>
             <div className="flex-1 flex items-end">
               <div className="text-sm text-gray-300 font-normal">
                 <div>
-                  <span>Spotify</span>
+                  <span>{isChatRecs ? "Gemini" : "Spotify"}</span>
                 </div>
                 <p className="mt-1">
                   <span className="text-white">
@@ -70,9 +107,7 @@ const PlaylistItem = () => {
             </div>
           </div>
         </header>
-        <div className="pl-6 pt-6">
-          <CardPlayButton id={`spotify-search`} size="large" />
-        </div>
+        {/* Removed CardPlayButton */}
         <div className="relative z-10 px-6 pt-10">
           <MusicsTable songs={displaySongs} />
         </div>
