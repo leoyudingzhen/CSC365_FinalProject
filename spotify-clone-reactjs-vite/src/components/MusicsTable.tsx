@@ -33,7 +33,10 @@ const MusicsTable = ({ songs }: MusicsTableProps) => {
               <td className="px-4 py-2 flex gap-3">
                 <picture className="">
                   <img
-                    src={song?.image}
+                    src={
+                      song?.image ||
+                      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&auto=format&fit=crop"
+                    }
                     alt={song?.title}
                     className="w-11 h-11"
                   />
