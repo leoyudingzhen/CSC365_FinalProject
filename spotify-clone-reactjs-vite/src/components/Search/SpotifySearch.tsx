@@ -43,14 +43,28 @@ async function spotifySearch(
   }
 
   const encoded = encodeURIComponent(query);
-  const url = `https://api.spotify.com/v1/search?q=${encoded}&type=track,artist,album&limit=10`;
+  const url = `https://api.spotify.com/v1/search?q=${encoded}&type=track,artist,album&limit=50`;
 
-  const res = await fetch(url, {
+  let res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
   });
+
+  // If token expired, refresh and retry once
+  if (res.status === 401) {
+    accessToken = await getSpotifyTokenFromServer();
+    if (accessToken) {
+      localStorage.setItem("spotify_token", accessToken);
+      res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+    }
+  }
 
   if (!res.ok) {
     const text = await res.text();
