@@ -2,10 +2,11 @@ import { IoTimeOutline } from "react-icons/io5";
 import { Song } from "../lib/data";
 
 interface MusicsTableProps {
-  songs: Song[];
+  songs: any[];
+  onSelect?: (song: any) => void;
 }
 
-const MusicsTable = ({ songs }: MusicsTableProps) => {
+const MusicsTable = ({ songs, onSelect }: MusicsTableProps) => {
   return (
     <>
       <table className="table-auto text-left min-w-full divide-y divide-gray-500/20">
@@ -25,7 +26,10 @@ const MusicsTable = ({ songs }: MusicsTableProps) => {
           {songs.map((song, index) => (
             <tr
               key={song?.id}
-              className="text-gray-300 text-sm font-light hover:bg-white/10 overflow-hidden trasition duration-300"
+              onClick={() => onSelect?.(song)}
+              className="text-gray-300 text-sm font-light hover:bg-gradient-to-r hover:from-white/10 hover:to-emerald-500/10 overflow-hidden transition-all duration-300 cursor-pointer group"
+              role="button"
+              tabIndex={0}
             >
               <td className="px-4 py-2 rounded-tl-lg rounded-bl-lg w-5">
                 {index + 1}
@@ -38,7 +42,7 @@ const MusicsTable = ({ songs }: MusicsTableProps) => {
                       "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&auto=format&fit=crop"
                     }
                     alt={song?.title}
-                    className="w-11 h-11"
+                    className="w-11 h-11 rounded shadow-sm group-hover:shadow-md group-hover:shadow-emerald-500/20 transition-shadow duration-300"
                   />
                 </picture>
                 <div className="flex flex-col">

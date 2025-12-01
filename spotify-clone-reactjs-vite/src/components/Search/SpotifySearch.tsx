@@ -52,18 +52,22 @@ async function spotifySearch(
     },
   });
 
-  // If token expired, refresh and retry once
+  // If token was expired, try fetching a fresh token from our server and retry once
   if (res.status === 401) {
-    accessToken = await getSpotifyTokenFromServer();
-    if (accessToken) {
-      localStorage.setItem("spotify_token", accessToken);
-      res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
+    const fresh = await getSpotifyTokenFromServer();
+    if (fresh) {
+      localStorage.setItem("spotify_token", fresh);
+      const retry = await fetch(url, {
+        headers: { Authorization: `Bearer ${fresh}`, "Content-Type": "application/json" },
       });
+      if (!retry.ok) {
+        const text = await retry.text();
+        throw new Error(`spotifySearch: request failed after refresh (${retry.status}) - ${text}`);
+      }
+      return await retry.json();
     }
+    const text = await res.text();
+    throw new Error(`spotifySearch: request failed (401) - ${text}`);
   }
 
   if (!res.ok) {

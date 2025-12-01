@@ -1,7 +1,8 @@
-import CardPlayButton from "../components/CardPlayButton";
 import MusicsTable from "../components/MusicsTable";
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import SpotifySearchContext from "../context/SpotifySearchContext";
+import { IoPlaySkipForward, IoPlaySkipBack, IoClose, IoHeart, IoHeartOutline } from "react-icons/io5";
+import { Play } from "../components/Player/Play";
 
 const PlaylistItem = () => {
   const { result } = useContext(SpotifySearchContext) as any;
@@ -66,6 +67,124 @@ const PlaylistItem = () => {
   }
 
   console.log("Display Songs:", displaySongs);
+  const [selectedSpotifyTrackId, setSelectedSpotifyTrackId] =
+    useState<string | null>(null);
+  const [currentSongIndex, setCurrentSongIndex] = useState<number>(-1);
+  // for a smoother entrance animation we toggle mounted after selection
+  const [mounted, setMounted] = useState(false);
+  const [liked, setLiked] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (selectedSpotifyTrackId) {
+      // tiny delay so transition plays
+      const t = setTimeout(() => setMounted(true), 10);
+      return () => clearTimeout(t);
+    }
+    setMounted(false);
+  }, [selectedSpotifyTrackId]);
+
+  // When a track is selected, record a play (best-effort) and fetch liked status
+  useEffect(() => {
+    const id = selectedSpotifyTrackId;
+    if (!id) return;
+
+    // get current user from localStorage
+    try {
+      const raw = localStorage.getItem("__app_user");
+      if (!raw) return;
+      const u = JSON.parse(raw);
+      const username = u.username;
+      // record play (fire-and-forget)
+      (async () => {
+        try {
+          await fetch(`http://localhost:3001/users/${encodeURIComponent(username)}/plays`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ track_id: id }),
+          });
+        } catch (e) {
+          // ignore
+        }
+        // fetch liked status
+        try {
+          const r = await fetch(`http://localhost:3001/users/${encodeURIComponent(username)}/likes`);
+          if (r.ok) {
+            const likes = await r.json();
+            const found = likes.find((l: any) => String(l.track_id) === String(id));
+            setLiked(Boolean(found));
+          }
+        } catch (e) {
+          // ignore
+        }
+      })();
+    } catch (e) {
+      // no user, skip
+    }
+  }, [selectedSpotifyTrackId]);
+  const nextTrack = async () => {
+    if (!displaySongs || displaySongs.length === 0) return;
+    const nextIdx = currentSongIndex === -1 ? 0 : (currentSongIndex + 1) % displaySongs.length;
+    const next = displaySongs[nextIdx];
+    setCurrentSongIndex(nextIdx);
+    
+    if (isSpotifySearch && next?.id) {
+      setSelectedSpotifyTrackId(String(next.id));
+    } else if (!isSpotifySearch && next) {
+      // Resolve Quickchat track via Spotify Search
+      try {
+        const tokenResp = await fetch("http://localhost:3001/spotify-token");
+        const tokenData = tokenResp.ok ? await tokenResp.json() : null;
+        const accessToken = tokenData?.access_token;
+        if (!accessToken) return;
+        const qTitle = next?.title ? `track:${next.title}` : "";
+        const qArtist = next?.artists?.[0] ? ` artist:${next.artists[0]}` : "";
+        const q = encodeURIComponent(`${qTitle}${qArtist}`.trim() || next?.title || "");
+        const url = `https://api.spotify.com/v1/search?q=${q}&type=track&limit=1`;
+        const r = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+        if (r.ok) {
+          const data = await r.json();
+          const track = data?.tracks?.items?.[0];
+          if (track?.id) setSelectedSpotifyTrackId(String(track.id));
+        }
+      } catch {}
+    }
+  };
+
+  const prevTrack = async () => {
+    if (!displaySongs || displaySongs.length === 0) return;
+    const prevIdx = currentSongIndex === -1 ? 0 : (currentSongIndex - 1 + displaySongs.length) % displaySongs.length;
+    const prev = displaySongs[prevIdx];
+    setCurrentSongIndex(prevIdx);
+    
+    if (isSpotifySearch && prev?.id) {
+      setSelectedSpotifyTrackId(String(prev.id));
+    } else if (!isSpotifySearch && prev) {
+      // Resolve Quickchat track via Spotify Search
+      try {
+        const tokenResp = await fetch("http://localhost:3001/spotify-token");
+        const tokenData = tokenResp.ok ? await tokenResp.json() : null;
+        const accessToken = tokenData?.access_token;
+        if (!accessToken) return;
+        const qTitle = prev?.title ? `track:${prev.title}` : "";
+        const qArtist = prev?.artists?.[0] ? ` artist:${prev.artists[0]}` : "";
+        const q = encodeURIComponent(`${qTitle}${qArtist}`.trim() || prev?.title || "");
+        const url = `https://api.spotify.com/v1/search?q=${q}&type=track&limit=1`;
+        const r = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+        if (r.ok) {
+          const data = await r.json();
+          const track = data?.tracks?.items?.[0];
+          if (track?.id) setSelectedSpotifyTrackId(String(track.id));
+        }
+      } catch {}
+    }
+  };
+
+  const closeEmbed = () => {
+    setSelectedSpotifyTrackId(null);
+    setCurrentSongIndex(-1);
+  };
+
+  const selectedTrack = currentSongIndex >= 0 ? displaySongs[currentSongIndex] : null;
   return (
     <>
       <div
@@ -78,13 +197,13 @@ const PlaylistItem = () => {
             <img
               src={coverImage}
               alt="Cover"
-              className="object-cover w-full h-full shadow-lg"
+              className="object-cover w-full h-full shadow-lg rounded-md border-2 border-emerald-500/30"
             />
           </picture>
           <div className="flex flex-col justify-between py-2">
             <h2 className="flex flex-1 items-end"></h2>
             <div>
-              <h1 className="text-6xl font-extrabold block text-white">
+              <h1 className="text-6xl font-extrabold block text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-50 to-emerald-300">
                 {displaySongs.length > 0
                   ? isChatRecs
                     ? "Quickchat Recommendations"
@@ -107,12 +226,194 @@ const PlaylistItem = () => {
             </div>
           </div>
         </header>
-        {/* Removed CardPlayButton */}
-        <div className="relative z-10 px-6 pt-10">
-          <MusicsTable songs={displaySongs} />
+        <div className="pl-6 pt-6">
+          <button
+            onClick={() => {
+              if (displaySongs.length > 0) {
+                const firstSong = displaySongs[0];
+                setCurrentSongIndex(0);
+                if (isSpotifySearch && firstSong?.id) {
+                  setSelectedSpotifyTrackId(String(firstSong.id));
+                } else {
+                  // For Quickchat, resolve via Spotify Search
+                  (async () => {
+                    try {
+                      const tokenResp = await fetch("http://localhost:3001/spotify-token");
+                      const tokenData = tokenResp.ok ? await tokenResp.json() : null;
+                      const accessToken = tokenData?.access_token;
+                      if (!accessToken) return;
+                      const qTitle = firstSong?.title ? `track:${firstSong.title}` : "";
+                      const qArtist = firstSong?.artists?.[0] ? ` artist:${firstSong.artists[0]}` : "";
+                      const q = encodeURIComponent(`${qTitle}${qArtist}`.trim() || firstSong?.title || "");
+                      const url = `https://api.spotify.com/v1/search?q=${q}&type=track&limit=1`;
+                      const r = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+                      if (r.ok) {
+                        const data = await r.json();
+                        const track = data?.tracks?.items?.[0];
+                        if (track?.id) setSelectedSpotifyTrackId(track.id);
+                      }
+                    } catch {}
+                  })();
+                }
+              }
+            }}
+            className="rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 p-4 mb-10 hover:scale-105 transition shadow-lg shadow-emerald-500/40 hover:shadow-emerald-400/50"
+          >
+            <Play className="w-5 h-5 text-white" />
+          </button>
+        </div>
+        <div className="relative z-10 px-6 pt-10 pb-28">
+          <MusicsTable
+            songs={displaySongs}
+            onSelect={async (s: any) => {
+              // Find index of selected song
+              const idx = displaySongs.findIndex((song) => song.id === s.id);
+              setCurrentSongIndex(idx >= 0 ? idx : 0);
+              
+              // If this is a Spotify search result, the song id should be the Spotify track id
+              if (isSpotifySearch && s?.id) {
+                setSelectedSpotifyTrackId(String(s.id));
+                return;
+              }
+
+              // For Quickchat recommendations (no direct Spotify id), resolve via Spotify Search
+              try {
+                const tokenResp = await fetch("http://localhost:3001/spotify-token");
+                const tokenData = tokenResp.ok ? await tokenResp.json() : null;
+                const accessToken = tokenData?.access_token;
+                if (!accessToken) {
+                  setSelectedSpotifyTrackId(null);
+                  return;
+                }
+                const qTitle = s?.title ? `track:${s.title}` : "";
+                const qArtist = s?.artists?.[0] ? ` artist:${s.artists[0]}` : "";
+                const q = encodeURIComponent(`${qTitle}${qArtist}`.trim() || s?.title || "");
+                const url = `https://api.spotify.com/v1/search?q=${q}&type=track&limit=1`;
+                const r = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+                if (!r.ok) {
+                  setSelectedSpotifyTrackId(null);
+                  return;
+                }
+                const data = await r.json();
+                const first = data?.tracks?.items?.[0];
+                if (first?.id) {
+                  setSelectedSpotifyTrackId(String(first.id));
+                } else {
+                  setSelectedSpotifyTrackId(null);
+                }
+              } catch {
+                setSelectedSpotifyTrackId(null);
+              }
+            }}
+          />
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/80 -z-[1]" />
       </div>
+      {/* Spotify embed footer */}
+      {selectedSpotifyTrackId && (
+        <div
+          className={`fixed bottom-6 left-6 right-6 z-50 flex justify-center pointer-events-auto`}
+        >
+          <div
+            className={`max-w-7xl w-full bg-gradient-to-r from-zinc-900/95 via-zinc-800/80 to-emerald-900/5 border border-zinc-700 rounded-xl shadow-2xl backdrop-blur-sm overflow-hidden transform transition-all duration-300 ease-out ${
+              mounted ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
+            }`}
+          >
+            <div className="flex items-center gap-4 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={prevTrack}
+                  className="flex items-center justify-center w-10 h-10 bg-zinc-800 hover:bg-zinc-700 text-white rounded-full shadow-md transition-transform transform hover:-translate-y-0.5"
+                  aria-label="Previous"
+                >
+                  <IoPlaySkipBack size={18} />
+                </button>
+                <button
+                  onClick={nextTrack}
+                  className="flex items-center justify-center w-10 h-10 bg-emerald-500 hover:bg-emerald-400 text-white rounded-full shadow-md transition-transform transform hover:-translate-y-0.5"
+                  aria-label="Next"
+                >
+                  <IoPlaySkipForward size={18} />
+                </button>
+              </div>
+
+              <div className="flex-1 flex items-center gap-4">
+                {selectedTrack?.image && (
+                  <img
+                    src={selectedTrack.image}
+                    alt={selectedTrack.title}
+                    className="w-14 h-14 rounded-md object-cover shadow-inner"
+                  />
+                )}
+
+                <div className="flex-1">
+                  <div className="text-sm text-zinc-300 line-clamp-1">{selectedTrack?.artists?.join(", ")}</div>
+                  <div className="text-white font-semibold line-clamp-1">{selectedTrack?.title}</div>
+                </div>
+
+                <div className="flex-1">
+                  <iframe
+                    title="Spotify Player"
+                    src={`https://open.spotify.com/embed/track/${selectedSpotifyTrackId}`}
+                    width="100%"
+                    height={80}
+                    frameBorder={0}
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                    className="block rounded-md overflow-hidden"
+                  />
+                </div>
+
+                <div className="flex items-center">
+                  <button
+                    onClick={async () => {
+                      // toggle like: requires signed-in user
+                      try {
+                        const raw = localStorage.getItem("__app_user");
+                        if (!raw) {
+                          // ask user to sign in
+                          window.dispatchEvent(new Event("app_open_signin"));
+                          return;
+                        }
+                        const u = JSON.parse(raw);
+                        const username = u.username;
+                        if (liked) {
+                          await fetch(`http://localhost:3001/users/${encodeURIComponent(username)}/likes`, {
+                            method: "DELETE",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ track_id: selectedSpotifyTrackId }),
+                          });
+                          setLiked(false);
+                        } else {
+                          await fetch(`http://localhost:3001/users/${encodeURIComponent(username)}/likes`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ track_id: selectedSpotifyTrackId, title: selectedTrack?.title, artists: selectedTrack?.artists }),
+                          });
+                          setLiked(true);
+                        }
+                      } catch (e) {
+                        // ignore
+                      }
+                    }}
+                    className="flex items-center justify-center w-10 h-10 bg-zinc-800 hover:bg-zinc-700 text-white rounded-full shadow-md mr-2"
+                    aria-label="Like song"
+                  >
+                    {liked ? <IoHeart size={18} color="#ef4444" /> : <IoHeartOutline size={18} />}
+                  </button>
+
+                  <button
+                    onClick={closeEmbed}
+                    className="flex items-center justify-center w-10 h-10 bg-zinc-800 hover:bg-zinc-700 text-white rounded-full shadow-md"
+                    aria-label="Close player"
+                  >
+                    <IoClose size={18} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
