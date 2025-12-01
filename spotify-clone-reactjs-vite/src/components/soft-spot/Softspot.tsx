@@ -189,7 +189,7 @@ export default function FloatingChat({
           note: (data as any)?.note,
           error: (data as any)?.error,
         });
-        navigate("/");
+        navigate("/playlist");
       }
       const assistantMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,
