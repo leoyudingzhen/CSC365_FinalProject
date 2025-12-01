@@ -13,7 +13,7 @@ app.use(express.json());
 const client_id = "0490db2e4e234d2bad0ebe1f08214d56";
 const client_secret = "964802914ef84ed2a35b363d02d844b8";
 // Hardcoded Gemini key as requested (consider moving back to env for security)
-const GEMINI_API_KEY = "AIzaSyAkYQQ5cfVM3ojEAhDlOl97MwpqA3hFpdk";
+const GEMINI_API_KEY = "AIzaSyA521tgzq5qU0pTbFqPQCu1CyrIf83jLxQ";
 console.log("[gemini] key loaded:", !!GEMINI_API_KEY);
 // --- Spotify token cache and auto-refresh ---
 let cachedToken: string | null = null;
@@ -94,27 +94,32 @@ app.get("/spotify-token", async (_req, res) => {
 
 app.post("/gemini/recommend", async (req, res) => {
   const { prompt } = req.body || {};
+  console.log("[gemini] Received prompt:", prompt);
+  
   if (!prompt || typeof prompt !== "string") {
+    console.log("[gemini] ERROR: prompt is missing or not a string");
     return res.status(400).json({ error: "prompt is required" });
   }
 
   if (!GEMINI_API_KEY) {
+    console.log("[gemini] ERROR: API key not configured");
     return res
       .status(500)
       .json({ error: "GEMINI_API_KEY is not configured on the server." });
   }
 
-  // Use an available generateContent model from your ListModels output
+  // Use gemini-2.5-flash with v1beta API (key in URL, no role field)
   const modelUrl =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY;
   const systemPrompt =
     "You are a concise music concierge. Recommend fresh, recognizable songs users can stream on Spotify. Respond as JSON with a 'songs' array of objects: {title, artist, album?, genre?, reason?}. Keep between 3 and 8 songs. Do not include URLs.";
 
+  console.log("[gemini] Making request to:", modelUrl.replace(GEMINI_API_KEY, "***"));
+  
   try {
     const payload = {
       contents: [
         {
-          role: "user",
           parts: [
             {
               text: `${systemPrompt}\n\nUser request: ${prompt}`,
@@ -124,13 +129,16 @@ app.post("/gemini/recommend", async (req, res) => {
       ],
     };
 
+    console.log("[gemini] Payload:", JSON.stringify(payload).substring(0, 200));
+
     const { data } = await axios.post(modelUrl, payload, {
       timeout: 20_000,
       headers: {
         "Content-Type": "application/json",
-        "x-goog-api-key": GEMINI_API_KEY,
       },
     });
+    
+    console.log("[gemini] Success! Response data:", JSON.stringify(data).substring(0, 300));
 
     let textResponse: string | null =
       data?.candidates?.[0]?.content?.parts
@@ -161,7 +169,9 @@ app.post("/gemini/recommend", async (req, res) => {
   } catch (err: any) {
     const status = err?.response?.status || 500;
     const details = err?.response?.data || err?.message || "unknown error";
-    console.error("Gemini recommend error", details);
+    console.error("[gemini] ERROR Status:", status);
+    console.error("[gemini] ERROR Details:", JSON.stringify(details, null, 2));
+    console.error("[gemini] Full error:", err.message);
     return res
       .status(status)
       .json({ error: "Failed to fetch recommendations", details });

@@ -145,6 +145,11 @@ export default function FloatingChat({
       }
 
       if (!res.ok) {
+        // Navigate to 404 if Gemini returns 404
+        if (res.status === 404) {
+          navigate("/404");
+          return;
+        }
         const message =
           (data as any)?.error ||
           (data as any)?.details ||

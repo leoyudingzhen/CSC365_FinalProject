@@ -4,6 +4,7 @@ import AsideMenu from "./components/AsideMenu";
 import PlaylistItem from "./pages/PlaylistItem";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Search from "./pages/Search";
+import NotFound from "./pages/NotFound";
 import Softspot from "./components/soft-spot/Softspot";
 import SHeader from "./components/Sections/Header";
 import { useState, useEffect } from "react";
@@ -56,7 +57,8 @@ function App() {
             <Route path="/" element={<MainSection user={user} />} />
             <Route path="/playlist" element={<PlaylistItem />} />
             <Route path="/search" element={<Search />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="/404" element={<NotFound />} />
+            <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
           <slot />
         </main>

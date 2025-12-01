@@ -72,6 +72,10 @@ async function spotifySearch(
 
   if (!res.ok) {
     const text = await res.text();
+    // Navigate to 404 if Spotify returns 404
+    if (res.status === 404) {
+      window.location.href = "/404";
+    }
     throw new Error(`spotifySearch: request failed (${res.status}) - ${text}`);
   }
 
